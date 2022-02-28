@@ -1,5 +1,7 @@
 include arch/lkl/auto.conf
 
+KASAN_SANITIZE := n
+
 KBUILD_CFLAGS += -fno-builtin
 
 ifneq (,$(filter $(OUTPUT_FORMAT),elf64-x86-64 elf64-x86-64-freebsd elf32-littlearm elf64-littleaarch64))
@@ -25,10 +27,12 @@ endif
 
 LDFLAGS_vmlinux += -r
 LKL_ENTRY_POINTS := lkl_start_kernel lkl_sys_halt lkl_syscall lkl_trigger_irq \
-	lkl_get_free_irq lkl_put_irq lkl_is_running
+	lkl_get_free_irq lkl_put_irq lkl_is_running \
+	lkl_kasan_init
 
 core-y += arch/lkl/kernel/
 core-y += arch/lkl/mm/
+core-y += arch/lkl/lib/
 
 all: lkl.o
 

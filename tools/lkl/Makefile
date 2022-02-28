@@ -105,8 +105,12 @@ $(OUTPUT)Utils.o:
 $(OUTPUT)Constants.o:
 	cp -f $(SYSCALL_DIR)/Constants.o $@
 
+$(OUTPUT)pmparser.o:
+	$(CXX) $(CXXFLAGS) -c $(OUTPUT)pmparser.c -o $@
+
 # executor (CPP)
-$(OUTPUT)executor: $(OUTPUT)executor-in.o $(OUTPUT)Image.o $(OUTPUT)Program.o $(OUTPUT)Utils.o $(OUTPUT)Constants.o $(OUTPUT)liblkl.a
+# $(OUTPUT)executor: $(OUTPUT)executor-in.o $(OUTPUT)Image.o $(OUTPUT)Program.o $(OUTPUT)Utils.o $(OUTPUT)Constants.o $(OUTPUT)liblkl.a
+$(OUTPUT)executor: $(OUTPUT)executor-in.o $(OUTPUT)Image.o $(OUTPUT)Program.o $(OUTPUT)Utils.o $(OUTPUT)Constants.o $(OUTPUT)liblkl.a $(OUTPUT)pmparser.o
 	$(QUIET_LINK)$(CXX) $(LDFLAGS) $(LDFLAGS_$*-y) -o $@ $^ $(LDLIBS) $(LDLIBS_$*-y)
 
 # combined (CPP)

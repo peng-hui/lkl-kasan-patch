@@ -436,6 +436,18 @@ SYSCALL_DEFINE1(chdir, const char __user *, filename)
 	struct path path;
 	int error;
 	unsigned int lookup_flags = LOOKUP_FOLLOW | LOOKUP_DIRECTORY;
+#ifdef CONFIG_KASAN_TEST_ON_CHDIR
+
+        char* ti2;
+        char* ti = kmalloc(1000*sizeof(char), GFP_KERNEL);
+        *(ti+8+1000) = 4;
+        *(ti+400+1000) = 4;
+        kfree(ti);
+        ti2 = kmalloc(1000*sizeof(char), GFP_KERNEL);
+        kfree(ti);
+        *ti = 10;
+
+#endif
 retry:
 	error = user_path_at(AT_FDCWD, filename, lookup_flags, &path);
 	if (error)

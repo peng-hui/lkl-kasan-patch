@@ -4,6 +4,8 @@
 export srctree=
 export objtree=
 
+#KASAN_SANITIZE := n
+
 include scripts/Makefile.include
 
 help:

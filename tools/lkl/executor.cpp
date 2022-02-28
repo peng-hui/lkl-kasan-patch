@@ -22,6 +22,9 @@
 
 #include <vector>
 
+//extern "C" {
+#include "pmparser.h"
+//}
 #include "executor.hpp"
 #include "Program.hpp"
 
@@ -216,6 +219,34 @@ void *userfault_init(void *image_buffer, size_t size) {
   return buffer;
 }
 
+struct lkl_kasan_meta {
+    unsigned long stack_base;
+    unsigned long stack_size;
+    unsigned long global_base;
+    unsigned long global_size;
+};
+
+void fill_kasan_meta(struct lkl_kasan_meta* to) {
+
+    struct procmaps_struct *head, *pt;
+    pid_t pid = getpid();
+    printf("my pid: %d\n",pid);
+
+    head = pmparser_parse(pid);
+    //pmparser_print(head, -1);
+    
+    pt = head;
+    while(pt != NULL) {
+        if(strncmp(pt->pathname,"[stack]",10) == 0) {
+            to->stack_base = (unsigned long)pt->addr_start;
+            to->stack_size = (unsigned long)pt->length; 
+        }
+        pt = pt->next;
+    }
+    return;
+
+}
+
 extern uint32_t __afl_in_trace;
 extern "C" void __afl_manual_init_syscall(void);
 // extern "C" void output_edges(void);
@@ -230,6 +261,8 @@ int main(int argc, char **argv)
     void *image_buffer;
     size_t size;
 	struct stat st;
+unsigned long stack_base;
+        struct lkl_kasan_meta kasan_meta;
 
 	if (argp_parse(&argp_executor, argc, argv, 0, 0, &cla) < 0)
 		return -1;
@@ -241,6 +274,16 @@ int main(int argc, char **argv)
 
 	if (!cla.printk)
 		lkl_host_ops.print = NULL;
+
+        fill_kasan_meta(&kasan_meta);
+
+
+        stack_base = lkl_kasan_init(&lkl_host_ops,
+                128 * 1024 * 1024,
+                kasan_meta.stack_base,
+                kasan_meta.stack_size);
+
+        printf("shadow_base: %lx\n",stack_base);
 
     const char *mount_options = NULL;
     if (!strcmp(cla.fsimg_type, "btrfs"))
@@ -272,6 +315,9 @@ int main(int argc, char **argv)
     	return -1;
 	}
 	disk_id = ret;
+
+        printf("starting kernel\n");
+        fflush(NULL);
 
 	lkl_start_kernel(&lkl_host_ops, "mem=128M");
 	

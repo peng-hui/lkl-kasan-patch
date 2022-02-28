@@ -44,9 +44,11 @@ define virtio_net_vde
   LDLIBS += $(shell pkg-config --libs vdeplug)
 endef
 
+# Can we do this selectively??
 define posix_host
   $(call set_autoconf_var,POSIX,y)
   $(call set_autoconf_var,VIRTIO_NET,y)
+  $(call set_autoconf_var,KASAN,y)
   LDFLAGS += -pie
   CFLAGS += -fPIC -pthread
   SOSUF := .so

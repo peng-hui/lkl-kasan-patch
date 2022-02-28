@@ -7,7 +7,7 @@ config KASAN
 	bool "KASan: runtime memory debugger"
 	depends on SLUB || (SLAB && !DEBUG_SLAB)
 	select CONSTRUCTORS
-	select STACKDEPOT
+#select STACKDEPOT
 	help
 	  Enables kernel address sanitizer - runtime memory debugger,
 	  designed to find out-of-bounds accesses and use-after-free bugs.
@@ -55,6 +55,17 @@ config KASAN_INLINE
 	  This requires a gcc version of 5.0 or later.
 
 endchoice
+
+
+config KASAN_TEST_ON_CHDIR
+        bool "test.."
+	depends on KASAN
+	default n
+
+config KASAN_PANIC_ON_ERROR
+	bool "panic on violation for lkl-fs-fuzz"
+	depends on KASAN
+	default n
 
 config TEST_KASAN
 	tristate "Module for testing kasan for bug detection"

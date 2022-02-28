@@ -31,7 +31,9 @@
 #include <linux/sched.h>
 #include <linux/sched/task_stack.h>
 #include <linux/slab.h>
+#ifdef CONFIG_STACKDEPOT
 #include <linux/stacktrace.h>
+#endif
 #include <linux/string.h>
 #include <linux/types.h>
 #include <linux/vmalloc.h>
@@ -39,6 +41,13 @@
 
 #include "kasan.h"
 #include "../slab.h"
+
+#undef __memset
+extern void *__memset(void *, int, __kernel_size_t);
+#undef __memcpy
+extern void *__memcpy(void *, const void *, __kernel_size_t);
+#undef __memmove
+extern void *__memmove(void *, const void *, __kernel_size_t);
 
 void kasan_enable_current(void)
 {
@@ -242,15 +251,30 @@ static __always_inline bool memory_is_poisoned(unsigned long addr, size_t size)
 }
 
 static __always_inline void check_memory_region_inline(unsigned long addr,
-						size_t size, bool write,
-						unsigned long ret_ip)
+                                               size_t size, bool write,
+                                               unsigned long ret_ip)
 {
-	if (unlikely(size == 0))
+        if (unlikely(size == 0))
 		return;
+        if(unlikely(lkl_kasan_shadow_start == 0)){
+            panic("lkl_kasan_shadow_start = 0!!");
+            return;
+        }
+
 
 	if (unlikely((void *)addr <
-		kasan_shadow_to_mem((void *)KASAN_SHADOW_START))) {
+		kasan_shadow_to_mem((void *)KASAN_SHADOW_START)
+#ifdef CONFIG_LKL
+
+                || ((unsigned long)addr > memory_end) || ((unsigned long)addr < memory_start)
+#endif 
+                
+                // Dirty!!!
+                )) {
+#ifndef CONFIG_LKL
+            //XXX
 		kasan_report(addr, size, write, ret_ip);
+#endif
 		return;
 	}
 
@@ -278,7 +302,7 @@ void kasan_check_write(const volatile void *p, unsigned int size)
 	check_memory_region((unsigned long)p, size, true, _RET_IP_);
 }
 EXPORT_SYMBOL(kasan_check_write);
-
+#ifdef memset
 #undef memset
 void *memset(void *addr, int c, size_t len)
 {
@@ -286,7 +310,8 @@ void *memset(void *addr, int c, size_t len)
 
 	return __memset(addr, c, len);
 }
-
+#endif
+#ifdef memmove
 #undef memmove
 void *memmove(void *dest, const void *src, size_t len)
 {
@@ -295,7 +320,8 @@ void *memmove(void *dest, const void *src, size_t len)
 
 	return __memmove(dest, src, len);
 }
-
+#endif
+#ifdef memcpy
 #undef memcpy
 void *memcpy(void *dest, const void *src, size_t len)
 {
@@ -304,7 +330,7 @@ void *memcpy(void *dest, const void *src, size_t len)
 
 	return __memcpy(dest, src, len);
 }
-
+#endif
 void kasan_alloc_pages(struct page *page, unsigned int order)
 {
 	if (likely(!PageHighMem(page)))
@@ -419,7 +445,7 @@ static inline int in_irqentry_text(unsigned long ptr)
 		(ptr >= (unsigned long)&__softirqentry_text_start &&
 		 ptr < (unsigned long)&__softirqentry_text_end);
 }
-
+#ifdef CONFIG_STACKDEPOT
 static inline void filter_irq_stacks(struct stack_trace *trace)
 {
 	int i;
@@ -433,6 +459,7 @@ static inline void filter_irq_stacks(struct stack_trace *trace)
 			break;
 		}
 }
+
 
 static inline depot_stack_handle_t save_stack(gfp_t flags)
 {
@@ -453,10 +480,13 @@ static inline depot_stack_handle_t save_stack(gfp_t flags)
 	return depot_save_stack(&trace, flags);
 }
 
+#endif
 static inline void set_track(struct kasan_track *track, gfp_t flags)
 {
 	track->pid = current->pid;
+#ifdef CONFIG_STACKDEPOT
 	track->stack = save_stack(flags);
+#endif
 }
 
 struct kasan_alloc_meta *get_alloc_info(struct kmem_cache *cache,
@@ -544,7 +574,7 @@ void kasan_kmalloc(struct kmem_cache *cache, const void *object, size_t size,
 	redzone_end = round_up((unsigned long)object + cache->object_size,
 				KASAN_SHADOW_SCALE_SIZE);
 
-	kasan_unpoison_shadow(object, size);
+        kasan_unpoison_shadow(object, size);
 	kasan_poison_shadow((void *)redzone_start, redzone_end - redzone_start,
 		KASAN_KMALLOC_REDZONE);
 
@@ -614,7 +644,7 @@ void kasan_kfree_large(void *ptr, unsigned long ip)
 		kasan_report_invalid_free(ptr, ip);
 	/* The object will be poisoned by page_alloc. */
 }
-
+#ifndef CONFIG_LKL
 int kasan_module_alloc(void *addr, size_t size)
 {
 	void *ret;
@@ -642,7 +672,7 @@ int kasan_module_alloc(void *addr, size_t size)
 
 	return -ENOMEM;
 }
-
+#endif
 void kasan_free_shadow(const struct vm_struct *vm)
 {
 	if (vm->flags & VM_KASAN)

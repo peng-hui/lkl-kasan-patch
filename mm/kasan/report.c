@@ -21,8 +21,10 @@
 #include <linux/printk.h>
 #include <linux/sched.h>
 #include <linux/slab.h>
+#ifdef CONFIG_STACKDEPOT
 #include <linux/stackdepot.h>
 #include <linux/stacktrace.h>
+#endif
 #include <linux/string.h>
 #include <linux/types.h>
 #include <linux/kasan.h>
@@ -116,12 +118,17 @@ static const char *get_wild_bug_type(struct kasan_access_info *info)
 	const char *bug_type = "unknown-crash";
 
 	if ((unsigned long)info->access_addr < PAGE_SIZE)
-		bug_type = "null-ptr-deref";
+		bug_type = "null-ptr-deref (addr does not have shadow)";
+#ifndef CONFIG_LKL
 	else if ((unsigned long)info->access_addr < TASK_SIZE)
 		bug_type = "user-memory-access";
+#endif
 	else
-		bug_type = "wild-memory-access";
+		bug_type = "wild-memory-access (addr does not have shadow)";
 
+        pr_info("%lx\n",info->access_addr);
+        pr_info("%lx\n",memory_start);
+        pr_info("%lx\n",memory_end);
 	return bug_type;
 }
 
@@ -178,18 +185,24 @@ static void kasan_end_report(unsigned long *flags)
 	spin_unlock_irqrestore(&report_lock, *flags);
 	if (panic_on_warn)
 		panic("panic_on_warn set ...\n");
+#ifdef CONFIG_KASAN_PANIC_ON_ERROR
+        panic("ksan_panic_on_error set\n");
+#endif
 	kasan_enable_current();
 }
 
 static void print_track(struct kasan_track *track, const char *prefix)
 {
 	pr_err("%s by task %u:\n", prefix, track->pid);
+#ifdef CONFIG_STACKDEPOT
 	if (track->stack) {
 		struct stack_trace trace;
 
 		depot_fetch_stack(track->stack, &trace);
 		print_stack_trace(&trace, 0);
-	} else {
+	} else 
+#endif
+        {
 		pr_err("(stack is not available)\n");
 	}
 }

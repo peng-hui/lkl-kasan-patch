@@ -105,6 +105,7 @@ static inline void poison_element(mempool_t *pool, void *element)
 
 static __always_inline void kasan_poison_element(mempool_t *pool, void *element)
 {
+    //return;
 	if (pool->alloc == mempool_alloc_slab || pool->alloc == mempool_kmalloc)
 		kasan_poison_kfree(element, _RET_IP_);
 	if (pool->alloc == mempool_alloc_pages)
@@ -113,6 +114,7 @@ static __always_inline void kasan_poison_element(mempool_t *pool, void *element)
 
 static void kasan_unpoison_element(mempool_t *pool, void *element, gfp_t flags)
 {
+    //return;
 	if (pool->alloc == mempool_alloc_slab || pool->alloc == mempool_kmalloc)
 		kasan_unpoison_slab(element);
 	if (pool->alloc == mempool_alloc_pages)

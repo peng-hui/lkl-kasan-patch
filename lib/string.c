@@ -701,6 +701,17 @@ void *memset(void *s, int c, size_t count)
 	return s;
 }
 EXPORT_SYMBOL(memset);
+
+void *__memset(void *s, int c, size_t count)
+{
+	char *xs = s;
+
+	while (count--)
+		*xs++ = c;
+	return s;
+}
+EXPORT_SYMBOL(__memset);
+
 #endif
 
 /**
@@ -810,6 +821,17 @@ void *memcpy(void *dest, const void *src, size_t count)
 	return dest;
 }
 EXPORT_SYMBOL(memcpy);
+void *__memcpy(void *dest, const void *src, size_t count)
+{
+	char *tmp = dest;
+	const char *s = src;
+
+	while (count--)
+		*tmp++ = *s++;
+	return dest;
+}
+EXPORT_SYMBOL(__memcpy);
+
 #endif
 
 #ifndef __HAVE_ARCH_MEMMOVE
@@ -842,6 +864,31 @@ void *memmove(void *dest, const void *src, size_t count)
 	return dest;
 }
 EXPORT_SYMBOL(memmove);
+
+
+void *__memmove(void *dest, const void *src, size_t count)
+{
+	char *tmp;
+	const char *s;
+
+	if (dest <= src) {
+		tmp = dest;
+		s = src;
+		while (count--)
+			*tmp++ = *s++;
+	} else {
+		tmp = dest;
+		tmp += count;
+		s = src;
+		s += count;
+		while (count--)
+			*--tmp = *--s;
+	}
+	return dest;
+}
+EXPORT_SYMBOL(__memmove);
+
+
 #endif
 
 #ifndef __HAVE_ARCH_MEMCMP
@@ -962,7 +1009,6 @@ void *memchr(const void *s, int c, size_t n)
 }
 EXPORT_SYMBOL(memchr);
 #endif
-
 static void *check_bytes8(const u8 *start, u8 value, unsigned int bytes)
 {
 	while (bytes) {

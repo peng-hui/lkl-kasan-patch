@@ -2,6 +2,7 @@ config LKL
        def_bool y
        depends on !SMP && !MMU && !COREDUMP && !SECCOMP && !UPROBES && !COMPAT && !USER_RETURN_NOTIFIER
        select ARCH_THREAD_STACK_ALLOCATOR
+       select HAVE_ARCH_KASAN
        select RWSEM_GENERIC_SPINLOCK
        select GENERIC_ATOMIC64
        select GENERIC_HWEIGHT
@@ -36,6 +37,8 @@ config LKL
        # select IP_ADVANCED_ROUTER
        # select IPV6_ADVANCED_ROUTER
        select ARCH_NO_COHERENT_DMA_MMAP
+config STACKTRACE_SUPPORT
+	def_bool n
 
 # config OUTPUTFORMAT
 #        string
@@ -91,4 +94,6 @@ source crypto/Kconfig
 source lib/Kconfig
 
 source lib/Kconfig.debug
+
+source lib/Kconfig.kasan
 

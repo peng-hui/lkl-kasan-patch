@@ -30,6 +30,7 @@
  */
 unsigned char kasan_zero_page[PAGE_SIZE] __page_aligned_bss;
 
+#ifdef CONFIG_MMU
 #if CONFIG_PGTABLE_LEVELS > 4
 p4d_t kasan_zero_p4d[PTRS_PER_P4D] __page_aligned_bss;
 #endif
@@ -39,7 +40,10 @@ pud_t kasan_zero_pud[PTRS_PER_PUD] __page_aligned_bss;
 #if CONFIG_PGTABLE_LEVELS > 2
 pmd_t kasan_zero_pmd[PTRS_PER_PMD] __page_aligned_bss;
 #endif
+
+
 pte_t kasan_zero_pte[PTRS_PER_PTE] __page_aligned_bss;
+#endif
 
 static __init void *early_alloc(size_t size, int node)
 {
@@ -47,6 +51,7 @@ static __init void *early_alloc(size_t size, int node)
 					BOOTMEM_ALLOC_ACCESSIBLE, node);
 }
 
+#ifdef CONFIG_MMU
 static void __init zero_pte_populate(pmd_t *pmd, unsigned long addr,
 				unsigned long end)
 {
@@ -139,6 +144,7 @@ static void __init zero_p4d_populate(pgd_t *pgd, unsigned long addr,
 	} while (p4d++, addr = next, addr != end);
 }
 
+
 /**
  * kasan_populate_zero_shadow - populate shadow memory region with
  *                               kasan_zero_page
@@ -197,3 +203,4 @@ void __init kasan_populate_zero_shadow(const void *shadow_start,
 		zero_p4d_populate(pgd, addr, next);
 	} while (pgd++, addr = next, addr != end);
 }
+#endif
