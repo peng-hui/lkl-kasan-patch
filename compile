@@ -41,7 +41,7 @@ if __name__ == '__main__':
     wrapper = 'ff-gcc-kasan'
   else:
     wrapper = 'ff-gcc'
-  cmd('make -C tools/lkl -j CC="%s/../ff-gcc/ %s fs/%s"' % (dir_path, wrapper, args.type))
+  cmd('make -C tools/lkl -j CC="%s/../ff-gcc/%s fs/%s"' % (dir_path, wrapper, args.type))
  
   #cmd('make -C tools/lkl -j CC="%s/../ff-gcc/ff-gcc fs/%s"' % (dir_path, args.type))
 
